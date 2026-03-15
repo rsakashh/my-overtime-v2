@@ -9,12 +9,12 @@
     "splash": {
       "image": "./icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f4c75"
+      "backgroundColor": "#0f3460"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./icon.png",
-        "backgroundColor": "#0f4c75"
+        "backgroundColor": "#0f3460"
       },
       "package": "com.aakash.myovertime"
     }
