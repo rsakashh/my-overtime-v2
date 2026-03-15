@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEYS = {
   workers: '@myovertime_workers',
   records: '@myovertime_records',
+  calcState: '@myovertime_calcstate',
 };
 
 async function loadData(key) {
@@ -311,16 +312,31 @@ export default function App() {
 
   // Refs to track if loaded
   const loaded = useRef(false);
+  const calcLoaded = useRef(false);
 
   // ── Load on mount ──
   useEffect(() => {
     (async () => {
       const w = await loadData(STORAGE_KEYS.workers);
       const r = await loadData(STORAGE_KEYS.records);
+      // Load calc state
+      try {
+        const cs = await AsyncStorage.getItem(STORAGE_KEYS.calcState);
+        if (cs) {
+          const c = JSON.parse(cs);
+          if (c.selId) setSelId(c.selId);
+          if (c.month !== undefined) setMonth(c.month);
+          if (c.year) setYear(c.year);
+          if (c.absent) setAbsent(c.absent);
+          if (c.otList) setOtList(c.otList);
+          if (c.nightList) setNightList(c.nightList);
+        }
+      } catch (e) {}
       setWorkers(w);
       setRecords(r);
       setLoading(false);
       loaded.current = true;
+      calcLoaded.current = true;
     })();
   }, []);
 
@@ -335,6 +351,14 @@ export default function App() {
     if (!loaded.current) return;
     saveData(STORAGE_KEYS.records, records);
   }, [records]);
+
+  // ── Save calc state when changed ──
+  useEffect(() => {
+    if (!calcLoaded.current) return;
+    AsyncStorage.setItem(STORAGE_KEYS.calcState, JSON.stringify({
+      selId, month, year, absent, otList, nightList
+    })).catch(() => {});
+  }, [selId, month, year, absent, otList, nightList]);
 
   const selW = workers.find(w => w.id === selId);
 
@@ -383,6 +407,7 @@ export default function App() {
   const resetCalc = () => {
     setSelId(null); setAbsent('0'); setOtList([]); setNightList([]);
     setResult(null); setSavedOk(false);
+    AsyncStorage.removeItem(STORAGE_KEYS.calcState).catch(() => {});
   };
 
   const saveRecord = () => {
@@ -703,12 +728,14 @@ export default function App() {
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 2 }}>{r.worker.name}</Text>
                         {!!r.worker.designation && <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{r.worker.designation}</Text>}
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-                          <Chip label={`৳${fmt(r.netSalary)}`} bg="#dcfce7" tc="#15803d" />
-                          {r.totalOTPay > 0 && <Chip label={`⏱৳${fmt(r.totalOTPay)}`} bg="#fef3c7" tc="#92400e" />}
-                          {r.totalNightPay > 0 && <Chip label={`🌙৳${fmt(r.totalNightPay)}`} bg="#ede9fe" tc="#5b21b6" />}
-                          {r.bonusApplied && <Chip label={`🏅৳${fmt(r.bonus)}`} bg="#ecfdf5" tc="#065f46" />}
-                          {r.deduction > 0 && <Chip label={`🔻৳${fmt(r.deduction)}`} bg="#fee2e2" tc="#dc2626" />}
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                          <Chip label={`গ্রস ৳${fmt(r.gross)}`} bg="#dbeafe" tc="#1d4ed8" />
+                          {r.deduction > 0 && <Chip label={`কর্তন -৳${fmt(r.deduction)}`} bg="#fee2e2" tc="#dc2626" />}
+                          <Chip label={`নেট ৳${fmt(r.netSalary)}`} bg="#dcfce7" tc="#15803d" />
+                          {r.totalOTPay > 0 && <Chip label={`⏱ ${r.totalOTHours}ঘন্টা +৳${fmt(r.totalOTPay)}`} bg="#fef3c7" tc="#92400e" />}
+                          {r.totalNightPay > 0 && <Chip label={`🌙 ${r.totalNightDays}দিন +৳${fmt(r.totalNightPay)}`} bg="#ede9fe" tc="#5b21b6" />}
+                          {r.bonusApplied && <Chip label={`🏅 বোনাস +৳${fmt(r.bonus)}`} bg="#ecfdf5" tc="#065f46" />}
+                          <Chip label={`অনুপস্থিত: ${r.absent}দিন`} bg="#f1f5f9" tc="#475569" />
                         </View>
                       </View>
                       <View style={{ alignItems: 'flex-end', gap: 6 }}>
