@@ -16,8 +16,7 @@
         "foregroundImage": "./icon.png",
         "backgroundColor": "#0f3460"
       },
-      "package": "com.aakash.myovertime",
-      "googleServicesFile": "./google-services.json"
+      "package": "com.aakash.myovertime"
     },
     "plugins": [
       [
