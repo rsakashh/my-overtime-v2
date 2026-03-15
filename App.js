@@ -11,24 +11,26 @@ const AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-6032254677631992/20937
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const STORAGE_KEYS = {
-  workers: '@myovertime_workers',
-  records: '@myovertime_records',
-  calcState: '@myovertime_calcstate',
+  workers: '@myovertime_workers_v2',
+  records: '@myovertime_records_v2',
+  calcState: '@myovertime_calc_v2',
 };
 
-async function loadData(key) {
+async function loadData(key, defaultVal = []) {
   try {
     const val = await AsyncStorage.getItem(key);
-    return val ? JSON.parse(val) : [];
+    if (val === null || val === undefined) return defaultVal;
+    const parsed = JSON.parse(val);
+    return parsed;
   } catch (e) {
-    console.log('Load error:', e);
-    return [];
+    return defaultVal;
   }
 }
 
 async function saveData(key, data) {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(data));
+    const str = JSON.stringify(data);
+    await AsyncStorage.setItem(key, str);
   } catch (e) {
     console.log('Save error:', e);
   }
@@ -313,65 +315,61 @@ export default function App() {
   // Records
   const [records, setRecords] = useState([]);
 
-  // Refs to track if loaded
-  const loaded = useRef(false);
-  const calcLoaded = useRef(false);
+  // Track data loaded state
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // ── Initialize AdMob ──
   useEffect(() => {
     MobileAds().initialize().catch(() => {});
   }, []);
 
-  // ── Load on mount ──
+  // ── Load ALL data on mount ──
   useEffect(() => {
+    let mounted = true;
     (async () => {
-      const w = await loadData(STORAGE_KEYS.workers);
-      const r = await loadData(STORAGE_KEYS.records);
-      // Load calc state
       try {
-        const cs = await AsyncStorage.getItem(STORAGE_KEYS.calcState);
-        if (cs) {
-          const c = JSON.parse(cs);
-          if (c.selId) setSelId(c.selId);
-          if (c.month !== undefined) setMonth(c.month);
-          if (c.year) setYear(c.year);
-          if (c.absent) setAbsent(c.absent);
-          if (c.otList) setOtList(c.otList);
-          if (c.nightList) setNightList(c.nightList);
+        const [w, r, cs] = await Promise.all([
+          loadData(STORAGE_KEYS.workers, []),
+          loadData(STORAGE_KEYS.records, []),
+          loadData(STORAGE_KEYS.calcState, null),
+        ]);
+        if (!mounted) return;
+        if (Array.isArray(w)) setWorkers(w);
+        if (Array.isArray(r)) setRecords(r);
+        if (cs && typeof cs === 'object') {
+          if (cs.selId != null) setSelId(cs.selId);
+          if (cs.month != null) setMonth(cs.month);
+          if (cs.year != null) setYear(cs.year);
+          if (cs.absent != null) setAbsent(cs.absent);
+          if (Array.isArray(cs.otList)) setOtList(cs.otList);
+          if (Array.isArray(cs.nightList)) setNightList(cs.nightList);
         }
-      } catch (e) {}
-      setWorkers(w);
-      setRecords(r);
-      setLoading(false);
-      loaded.current = true;
-      calcLoaded.current = true;
+      } catch (e) {
+        console.log('Load error:', e);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          setDataLoaded(true);
+        }
+      }
     })();
+    return () => { mounted = false; };
   }, []);
 
-  // ── Save workers when changed (only after load) ──
+  // ── Save worker selection & period immediately ──
   useEffect(() => {
-    if (!loaded.current) return;
-    saveData(STORAGE_KEYS.workers, workers);
-  }, [workers]);
-
-  // ── Save records when changed (only after load) ──
-  useEffect(() => {
-    if (!loaded.current) return;
-    saveData(STORAGE_KEYS.records, records);
-  }, [records]);
-
-  // ── Save calc state when changed ──
-  useEffect(() => {
-    if (!calcLoaded.current) return;
-    AsyncStorage.setItem(STORAGE_KEYS.calcState, JSON.stringify({
-      selId, month, year, absent, otList, nightList
-    })).catch(() => {});
-  }, [selId, month, year, absent, otList, nightList]);
+    if (!dataLoaded) return;
+    saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList, nightList });
+  }, [selId, month, year, absent, dataLoaded]);
 
   const selW = workers.find(w => w.id === selId);
 
   const saveWorker = w => {
-    setWorkers(p => p.find(x => x.id === w.id) ? p.map(x => x.id === w.id ? w : x) : [...p, w]);
+    setWorkers(p => {
+      const updated = p.find(x => x.id === w.id) ? p.map(x => x.id === w.id ? w : x) : [...p, w];
+      saveData(STORAGE_KEYS.workers, updated);
+      return updated;
+    });
     setShowAdd(false);
     setEditId(null);
   };
@@ -379,7 +377,11 @@ export default function App() {
   const deleteWorker = id => {
     Alert.alert('', t.confirmDel, [
       { text: t.no },
-      { text: t.yes, style: 'destructive', onPress: () => setWorkers(p => p.filter(w => w.id !== id)) }
+      { text: t.yes, style: 'destructive', onPress: () => setWorkers(p => {
+        const updated = p.filter(w => w.id !== id);
+        saveData(STORAGE_KEYS.workers, updated);
+        return updated;
+      })}
     ]);
   };
 
@@ -414,8 +416,9 @@ export default function App() {
 
   const resetCalc = () => {
     setSelId(null); setAbsent('0'); setOtList([]); setNightList([]);
+    setMonth(new Date().getMonth()); setYear(new Date().getFullYear());
     setResult(null); setSavedOk(false);
-    AsyncStorage.removeItem(STORAGE_KEYS.calcState).catch(() => {});
+    saveData(STORAGE_KEYS.calcState, null);
   };
 
   const saveRecord = () => {
@@ -428,7 +431,11 @@ export default function App() {
       nightList: [...nightList],
       ...result
     };
-    setRecords(p => [rec, ...p]);
+    setRecords(p => {
+      const updated = [rec, ...p];
+      saveData(STORAGE_KEYS.records, updated);
+      return updated;
+    });
     setSavedOk(true);
   };
 
@@ -618,14 +625,28 @@ export default function App() {
             </View>
             {!selId ? <Text style={S.hintTxt}>{t.selectFirst}</Text> : (
               <>
-                <EntryForm t={t} type="ot" onAdd={e => { setOtList(p => [...p, e]); setResult(null); }} />
+                <EntryForm t={t} type="ot" onAdd={e => {
+                  setOtList(p => {
+                    const updated = [...p, e];
+                    saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList: updated, nightList });
+                    return updated;
+                  });
+                  setResult(null);
+                }} />
                 {otList.length === 0 ? <Text style={S.hintTxt}>{t.noOT}</Text> :
                   [...otList].sort((a, b) => a.date > b.date ? 1 : -1).map(e => (
                     <View key={e.id} style={S.eRow}>
                       <Text style={S.eDate}>{e.date}</Text>
                       <Text style={[S.eHrs, { color: '#d97706' }]}>{e.hours} {t.hrs}</Text>
                       <Text style={S.eNote}>{e.note}</Text>
-                      <TouchableOpacity onPress={() => { setOtList(p => p.filter(x => x.id !== e.id)); setResult(null); }}><Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 14 }}>✕</Text></TouchableOpacity>
+                      <TouchableOpacity onPress={() => {
+                    setOtList(p => {
+                      const updated = p.filter(x => x.id !== e.id);
+                      saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList: updated, nightList });
+                      return updated;
+                    });
+                    setResult(null);
+                  }}><Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 14 }}>✕</Text></TouchableOpacity>
                     </View>
                   ))
                 }
@@ -641,14 +662,28 @@ export default function App() {
             </View>
             {!selId ? <Text style={S.hintTxt}>{t.selectFirst}</Text> : (
               <>
-                <EntryForm t={t} type="night" onAdd={e => { setNightList(p => [...p, e]); setResult(null); }} />
+                <EntryForm t={t} type="night" onAdd={e => {
+                  setNightList(p => {
+                    const updated = [...p, e];
+                    saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList, nightList: updated });
+                    return updated;
+                  });
+                  setResult(null);
+                }} />
                 {nightList.length === 0 ? <Text style={S.hintTxt}>{t.noNight}</Text> :
                   [...nightList].sort((a, b) => a.date > b.date ? 1 : -1).map(e => (
                     <View key={e.id} style={[S.eRow, { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe' }]}>
                       <Text style={S.eDate}>{e.date}</Text>
                       <Text style={[S.eHrs, { color: '#7c3aed' }]}>🌙</Text>
                       <Text style={S.eNote}>{e.note}</Text>
-                      <TouchableOpacity onPress={() => { setNightList(p => p.filter(x => x.id !== e.id)); setResult(null); }}><Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 14 }}>✕</Text></TouchableOpacity>
+                      <TouchableOpacity onPress={() => {
+                    setNightList(p => {
+                      const updated = p.filter(x => x.id !== e.id);
+                      saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList, nightList: updated });
+                      return updated;
+                    });
+                    setResult(null);
+                  }}><Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 14 }}>✕</Text></TouchableOpacity>
                     </View>
                   ))
                 }
@@ -720,7 +755,7 @@ export default function App() {
                 <TouchableOpacity style={[S.iconBtn, { backgroundColor: '#fee2e2', paddingHorizontal: 10 }]}
                   onPress={() => Alert.alert('', t.confirmDelAll, [
                     { text: t.no },
-                    { text: t.yes, style: 'destructive', onPress: () => setRecords([]) }
+                    { text: t.yes, style: 'destructive', onPress: () => { setRecords([]); saveData(STORAGE_KEYS.records, []); } }
                   ])}>
                   <Text style={{ color: '#dc2626', fontWeight: '700', fontSize: 12 }}>🗑 {t.clearAll}</Text>
                 </TouchableOpacity>
@@ -748,7 +783,11 @@ export default function App() {
                       </View>
                       <View style={{ alignItems: 'flex-end', gap: 6 }}>
                         <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e3a5f' }}>৳{fmt(r.grandTotal)}</Text>
-                        <TouchableOpacity style={[S.iconBtn, { backgroundColor: '#fee2e2' }]} onPress={() => setRecords(p => p.filter(x => x.id !== r.id))}><Text>🗑</Text></TouchableOpacity>
+                        <TouchableOpacity style={[S.iconBtn, { backgroundColor: '#fee2e2' }]} onPress={() => setRecords(p => {
+                          const updated = p.filter(x => x.id !== r.id);
+                          saveData(STORAGE_KEYS.records, updated);
+                          return updated;
+                        })}><Text>🗑</Text></TouchableOpacity>
                       </View>
                     </View>
                   ))}
