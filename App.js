@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, TextInput,
   StyleSheet, Alert, StatusBar, SafeAreaView, Switch,
-  ActivityIndicator
+  ActivityIndicator, AppState
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
@@ -354,6 +354,28 @@ export default function App() {
   useEffect(() => {
     MobileAds().initialize().catch(() => {});
   }, []);
+
+  // ── AppState listener — save before app goes background ──
+  useEffect(() => {
+    const handleAppStateChange = async (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        // Force save everything when app goes to background
+        try {
+          const currentData = await readFile();
+          await writeFile({
+            ...currentData,
+            workers,
+            records,
+            calcState: { selId, month, year, absent, otList, nightList }
+          });
+        } catch (e) {
+          console.log('AppState save error:', e);
+        }
+      }
+    };
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [workers, records, selId, month, year, absent, otList, nightList]);
 
   // ── Load ALL data on mount ──
   useEffect(() => {
