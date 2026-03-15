@@ -16,7 +16,16 @@
         "foregroundImage": "./icon.png",
         "backgroundColor": "#0f3460"
       },
-      "package": "com.aakash.myovertime"
-    }
+      "package": "com.aakash.myovertime",
+      "googleServicesFile": "./google-services.json"
+    },
+    "plugins": [
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-6032254677631992~8456018863"
+        }
+      ]
+    ]
   }
 }

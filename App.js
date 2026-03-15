@@ -5,6 +5,9 @@ import {
   ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BannerAd, BannerAdSize, TestIds, MobileAds } from 'react-native-google-mobile-ads';
+
+const AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-6032254677631992/2093790495';
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const STORAGE_KEYS = {
@@ -313,6 +316,11 @@ export default function App() {
   // Refs to track if loaded
   const loaded = useRef(false);
   const calcLoaded = useRef(false);
+
+  // ── Initialize AdMob ──
+  useEffect(() => {
+    MobileAds().initialize().catch(() => {});
+  }, []);
 
   // ── Load on mount ──
   useEffect(() => {
@@ -772,10 +780,24 @@ function RRow({ label, val, c, bg }) {
   );
 }
 
+function AdBanner() {
+  return (
+    <View style={{ alignItems: 'center', marginVertical: 8 }}>
+      <BannerAd
+        unitId={AD_UNIT_ID}
+        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+        onAdFailedToLoad={(err) => console.log('Ad failed:', err)}
+      />
+    </View>
+  );
+}
+
 function Footer({ t }) {
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 20, marginBottom: 10 }}>
-      <Text style={{ fontSize: 12, color: '#94a3b8' }}>{t.devBy}</Text>
+    <View style={{ alignItems: 'center', paddingBottom: 20, marginBottom: 10 }}>
+      <AdBanner />
+      <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>{t.devBy}</Text>
     </View>
   );
 }
