@@ -5,35 +5,67 @@ import {
   ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 import { BannerAd, BannerAdSize, TestIds, MobileAds } from 'react-native-google-mobile-ads';
 
 const AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-6032254677631992/2093790495';
 
-// ── Storage ───────────────────────────────────────────────────────────────────
-const STORAGE_KEYS = {
-  workers: '@myovertime_workers_v2',
-  records: '@myovertime_records_v2',
-  calcState: '@myovertime_calc_v2',
+// ── File Storage ──────────────────────────────────────────────────────────────
+const DATA_FILE = FileSystem.documentDirectory + 'myovertime_data.json';
+
+const DEFAULT_DATA = {
+  workers: [],
+  records: [],
+  calcState: {
+    selId: null,
+    month: new Date().getMonth(),
+    year: new Date().getFullYear(),
+    absent: '0',
+    otList: [],
+    nightList: [],
+  }
 };
 
-async function loadData(key, defaultVal = []) {
+async function readFile() {
   try {
-    const val = await AsyncStorage.getItem(key);
-    if (val === null || val === undefined) return defaultVal;
-    const parsed = JSON.parse(val);
-    return parsed;
+    const info = await FileSystem.getInfoAsync(DATA_FILE);
+    if (!info.exists) {
+      await FileSystem.writeAsStringAsync(DATA_FILE, JSON.stringify(DEFAULT_DATA));
+      return { ...DEFAULT_DATA };
+    }
+    const str = await FileSystem.readAsStringAsync(DATA_FILE);
+    const data = JSON.parse(str);
+    return {
+      workers: Array.isArray(data.workers) ? data.workers : [],
+      records: Array.isArray(data.records) ? data.records : [],
+      calcState: data.calcState || DEFAULT_DATA.calcState,
+    };
   } catch (e) {
-    return defaultVal;
+    console.log('Read error:', e);
+    return { ...DEFAULT_DATA };
   }
 }
 
-async function saveData(key, data) {
+async function writeFile(data) {
   try {
-    const str = JSON.stringify(data);
-    await AsyncStorage.setItem(key, str);
+    await FileSystem.writeAsStringAsync(DATA_FILE, JSON.stringify(data));
   } catch (e) {
-    console.log('Save error:', e);
+    console.log('Write error:', e);
   }
+}
+
+// ── Global data cache ────────────────────────────────────────────────────────
+let _cache = null;
+
+async function getData() {
+  if (!_cache) _cache = await readFile();
+  return _cache;
+}
+
+async function updateData(partial) {
+  const current = await getData();
+  _cache = { ...current, ...partial };
+  await writeFile(_cache);
 }
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
@@ -328,15 +360,12 @@ export default function App() {
     let mounted = true;
     (async () => {
       try {
-        const [w, r, cs] = await Promise.all([
-          loadData(STORAGE_KEYS.workers, []),
-          loadData(STORAGE_KEYS.records, []),
-          loadData(STORAGE_KEYS.calcState, null),
-        ]);
+        const data = await readFile();
         if (!mounted) return;
-        if (Array.isArray(w)) setWorkers(w);
-        if (Array.isArray(r)) setRecords(r);
-        if (cs && typeof cs === 'object') {
+        if (Array.isArray(data.workers)) setWorkers(data.workers);
+        if (Array.isArray(data.records)) setRecords(data.records);
+        const cs = data.calcState;
+        if (cs) {
           if (cs.selId != null) setSelId(cs.selId);
           if (cs.month != null) setMonth(cs.month);
           if (cs.year != null) setYear(cs.year);
@@ -359,7 +388,7 @@ export default function App() {
   // ── Save worker selection & period immediately ──
   useEffect(() => {
     if (!dataLoaded) return;
-    saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList, nightList });
+    updateData({ calcState: { selId, month, year, absent, otList, nightList } });
   }, [selId, month, year, absent, dataLoaded]);
 
   const selW = workers.find(w => w.id === selId);
@@ -367,7 +396,7 @@ export default function App() {
   const saveWorker = w => {
     setWorkers(p => {
       const updated = p.find(x => x.id === w.id) ? p.map(x => x.id === w.id ? w : x) : [...p, w];
-      saveData(STORAGE_KEYS.workers, updated);
+      updateData({ workers: updated });
       return updated;
     });
     setShowAdd(false);
@@ -379,7 +408,7 @@ export default function App() {
       { text: t.no },
       { text: t.yes, style: 'destructive', onPress: () => setWorkers(p => {
         const updated = p.filter(w => w.id !== id);
-        saveData(STORAGE_KEYS.workers, updated);
+        updateData({ workers: updated });
         return updated;
       })}
     ]);
@@ -415,10 +444,15 @@ export default function App() {
   };
 
   const resetCalc = () => {
+    const defaultCalc = {
+      selId: null, month: new Date().getMonth(),
+      year: new Date().getFullYear(), absent: '0',
+      otList: [], nightList: []
+    };
     setSelId(null); setAbsent('0'); setOtList([]); setNightList([]);
     setMonth(new Date().getMonth()); setYear(new Date().getFullYear());
     setResult(null); setSavedOk(false);
-    saveData(STORAGE_KEYS.calcState, null);
+    updateData({ calcState: defaultCalc });
   };
 
   const saveRecord = () => {
@@ -433,7 +467,7 @@ export default function App() {
     };
     setRecords(p => {
       const updated = [rec, ...p];
-      saveData(STORAGE_KEYS.records, updated);
+      updateData({ records: updated });
       return updated;
     });
     setSavedOk(true);
@@ -628,7 +662,7 @@ export default function App() {
                 <EntryForm t={t} type="ot" onAdd={e => {
                   setOtList(p => {
                     const updated = [...p, e];
-                    saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList: updated, nightList });
+                    updateData({ calcState: { selId, month, year, absent, otList: updated, nightList } });
                     return updated;
                   });
                   setResult(null);
@@ -642,7 +676,7 @@ export default function App() {
                       <TouchableOpacity onPress={() => {
                     setOtList(p => {
                       const updated = p.filter(x => x.id !== e.id);
-                      saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList: updated, nightList });
+                      updateData({ calcState: { selId, month, year, absent, otList: updated, nightList } });
                       return updated;
                     });
                     setResult(null);
@@ -665,7 +699,7 @@ export default function App() {
                 <EntryForm t={t} type="night" onAdd={e => {
                   setNightList(p => {
                     const updated = [...p, e];
-                    saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList, nightList: updated });
+                    updateData({ calcState: { selId, month, year, absent, otList, nightList: updated } });
                     return updated;
                   });
                   setResult(null);
@@ -679,7 +713,7 @@ export default function App() {
                       <TouchableOpacity onPress={() => {
                     setNightList(p => {
                       const updated = p.filter(x => x.id !== e.id);
-                      saveData(STORAGE_KEYS.calcState, { selId, month, year, absent, otList, nightList: updated });
+                      updateData({ calcState: { selId, month, year, absent, otList, nightList: updated } });
                       return updated;
                     });
                     setResult(null);
@@ -755,7 +789,7 @@ export default function App() {
                 <TouchableOpacity style={[S.iconBtn, { backgroundColor: '#fee2e2', paddingHorizontal: 10 }]}
                   onPress={() => Alert.alert('', t.confirmDelAll, [
                     { text: t.no },
-                    { text: t.yes, style: 'destructive', onPress: () => { setRecords([]); saveData(STORAGE_KEYS.records, []); } }
+                    { text: t.yes, style: 'destructive', onPress: () => { setRecords([]); updateData({ records: [] }); } }
                   ])}>
                   <Text style={{ color: '#dc2626', fontWeight: '700', fontSize: 12 }}>🗑 {t.clearAll}</Text>
                 </TouchableOpacity>
@@ -785,7 +819,7 @@ export default function App() {
                         <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e3a5f' }}>৳{fmt(r.grandTotal)}</Text>
                         <TouchableOpacity style={[S.iconBtn, { backgroundColor: '#fee2e2' }]} onPress={() => setRecords(p => {
                           const updated = p.filter(x => x.id !== r.id);
-                          saveData(STORAGE_KEYS.records, updated);
+                          updateData({ records: updated });
                           return updated;
                         })}><Text>🗑</Text></TouchableOpacity>
                       </View>
