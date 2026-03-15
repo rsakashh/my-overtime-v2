@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "My Overtime",
+    "slug": "my-overtime-v2",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f4c75"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./icon.png",
+        "backgroundColor": "#0f4c75"
+      },
+      "package": "com.aakash.myovertime"
+    }
+  }
+}
