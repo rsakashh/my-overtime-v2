@@ -459,7 +459,7 @@ export default function App() {
 
       {/* Header */}
       <View style={S.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 28, paddingBottom: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Text style={{ fontSize: 26, backgroundColor: 'rgba(255,255,255,0.15)', padding: 7, borderRadius: 12 }}>⏱</Text>
             <View>
