@@ -10,8 +10,9 @@ import { BannerAd, BannerAdSize, TestIds, MobileAds } from 'react-native-google-
 
 const AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-6032254677631992/2093790495';
 
-// ── File Storage ──────────────────────────────────────────────────────────────
-const DATA_FILE = FileSystem.documentDirectory + 'myovertime_data.json';
+// ── Storage: AsyncStorage + FileSystem dual save ──────────────────────────────
+const AS_KEY = '@myovertime_v5';
+const FILE_PATH = FileSystem.documentDirectory + 'myovertime_v5.json';
 
 const DEFAULT_DATA = {
   workers: [],
@@ -27,45 +28,56 @@ const DEFAULT_DATA = {
 };
 
 async function readFile() {
+  let data = null;
+
+  // Try AsyncStorage first (faster)
   try {
-    const info = await FileSystem.getInfoAsync(DATA_FILE);
-    if (!info.exists) {
-      await FileSystem.writeAsStringAsync(DATA_FILE, JSON.stringify(DEFAULT_DATA));
-      return { ...DEFAULT_DATA };
-    }
-    const str = await FileSystem.readAsStringAsync(DATA_FILE);
-    const data = JSON.parse(str);
-    return {
-      workers: Array.isArray(data.workers) ? data.workers : [],
-      records: Array.isArray(data.records) ? data.records : [],
-      calcState: data.calcState || DEFAULT_DATA.calcState,
-    };
-  } catch (e) {
-    console.log('Read error:', e);
-    return { ...DEFAULT_DATA };
+    const val = await AsyncStorage.getItem(AS_KEY);
+    if (val) data = JSON.parse(val);
+  } catch (e) {}
+
+  // Try FileSystem as backup
+  if (!data) {
+    try {
+      const info = await FileSystem.getInfoAsync(FILE_PATH);
+      if (info.exists) {
+        const str = await FileSystem.readAsStringAsync(FILE_PATH);
+        if (str) data = JSON.parse(str);
+      }
+    } catch (e) {}
   }
+
+  if (!data) return { ...DEFAULT_DATA };
+
+  return {
+    workers: Array.isArray(data.workers) ? data.workers : [],
+    records: Array.isArray(data.records) ? data.records : [],
+    calcState: data.calcState || DEFAULT_DATA.calcState,
+  };
 }
 
 async function writeFile(data) {
-  try {
-    await FileSystem.writeAsStringAsync(DATA_FILE, JSON.stringify(data));
-  } catch (e) {
-    console.log('Write error:', e);
-  }
+  const str = JSON.stringify(data);
+  // Save to BOTH storages simultaneously
+  await Promise.all([
+    AsyncStorage.setItem(AS_KEY, str).catch(() => {}),
+    FileSystem.writeAsStringAsync(FILE_PATH, str).catch(() => {}),
+  ]);
 }
 
-// ── Global data cache ────────────────────────────────────────────────────────
-let _cache = null;
-
-async function getData() {
-  if (!_cache) _cache = await readFile();
-  return _cache;
-}
-
+// ── Update data: read current → merge → write ────────────────────────────────
 async function updateData(partial) {
-  const current = await getData();
-  _cache = { ...current, ...partial };
-  await writeFile(_cache);
+  try {
+    const current = await readFile();
+    const updated = { ...current, ...partial };
+    await writeFile(updated);
+  } catch (e) {
+    console.log('updateData error:', e);
+    // Try direct write as fallback
+    try {
+      await writeFile({ ...DEFAULT_DATA, ...partial });
+    } catch (e2) {}
+  }
 }
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
