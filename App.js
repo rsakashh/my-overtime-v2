@@ -797,7 +797,7 @@ function WorkerForm({ t, initial, onSave, onCancel, lang }) {
           )}
         </View>
         <View style={S.btnRow}>
-          {onCancel && <TouchableOpacity style={[S.btn, S.btnSec]} onPress={onCancel}><Text style={S.btnSecTxt}>{t.cancel}</Text></TouchableOpacity>}
+          {onCancel && <TouchableOpacity style={[S.btn, S.btnSec, { flex: 0, paddingHorizontal: 18 }]} onPress={onCancel}><Text style={S.btnSecTxt}>{t.cancel}</Text></TouchableOpacity>}
           <ScaleBtn style={[S.btn, S.btnPri, { flex: 2 }]} onPress={() => {
             if (!w.name.trim() || !w.basicSalary || !w.grossSalary) {
               Alert.alert('', t.workerName.replace(' *', '') + ' & ' + t.basicSalary.replace(' *', '') + ' required');
@@ -1339,9 +1339,12 @@ export default function App() {
             </View>
           </FadeIn>
 
-          <View style={S.btnRow}>
-            <TouchableOpacity style={[S.btn, S.btnSec]} onPress={resetCalc}><Text style={S.btnSecTxt}>{t.reset}</Text></TouchableOpacity>
-            <ScaleBtn style={[S.btn, S.btnPri, { flex: 2, opacity: selId ? 1 : 0.5 }]} onPress={calculate}>
+          {/* Reset ছোট, হিসাব করুন বড় */}
+          <View style={[S.btnRow, { alignItems: 'center' }]}>
+            <TouchableOpacity style={[S.btn, S.btnSec, { flex: 0, paddingHorizontal: 20 }]} onPress={resetCalc}>
+              <Text style={S.btnSecTxt}>{t.reset}</Text>
+            </TouchableOpacity>
+            <ScaleBtn style={[S.btn, S.btnPri, { flex: 1, opacity: selId ? 1 : 0.5 }]} onPress={calculate}>
               <Text style={S.btnPriTxt}>{t.calc}</Text>
             </ScaleBtn>
           </View>
@@ -1388,18 +1391,8 @@ export default function App() {
                   </View>
                 )}
 
-                {/* Night Bill — SEPARATE BLOCK */}
-                {result.totalNightPay > 0 && (
-                  <View style={{ backgroundColor: '#f5f3ff', borderRadius: 12, padding: 10, borderWidth: 2, borderColor: '#a78bfa', marginBottom: 10 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#5b21b6', marginBottom: 8, textTransform: 'uppercase' }}>{t.nightBillSection}</Text>
-                    <RRow label={`${t.nightLbl} (${result.totalNightDays} ${t.days} × ৳${selW?.nightRatePerDay})`} val={`৳ ${fmt(result.totalNightPay)}`} c="#7c3aed" bg="#ede9fe" />
-                    <Text style={{ fontSize: 11, color: '#7c3aed', marginTop: 4, fontStyle: 'italic' }}>
-                      {lang === 'bn' ? '* নাইট বিল বেতন থেকে আলাদা' : '* Night Bill is separate from salary'}
-                    </Text>
-                  </View>
-                )}
-
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', borderRadius: 14, padding: 16, marginTop: 4 }}>
+                {/* Grand Total — শুধু বেতন + OT + বোনাস */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', borderRadius: 14, padding: 16, marginTop: 4, marginBottom: 10 }}>
                   <View>
                     <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{t.total}</Text>
                     <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900' }}>৳ {fmt(result.grandTotal)}</Text>
@@ -1410,12 +1403,24 @@ export default function App() {
                   </View>
                 </View>
 
+                {/* Night Bill — Grand Total এর নিচে আলাদা */}
+                {result.totalNightPay > 0 && (
+                  <View style={{ backgroundColor: '#f5f3ff', borderRadius: 12, padding: 12, borderWidth: 2, borderColor: '#a78bfa', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#5b21b6', marginBottom: 8, textTransform: 'uppercase' }}>{t.nightBillSection}</Text>
+                    <RRow label={`${t.nightLbl} (${result.totalNightDays} ${t.days} × ৳${selW?.nightRatePerDay})`} val={`৳ ${fmt(result.totalNightPay)}`} c="#7c3aed" bg="#ede9fe" />
+                    <Text style={{ fontSize: 11, color: '#7c3aed', marginTop: 4, fontStyle: 'italic' }}>
+                      {lang === 'bn' ? '* নাইট বিল সর্বমোটের বাইরে আলাদা' : '* Night Bill is outside grand total'}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Save Button বড় */}
                 {!savedOk
-                  ? <ScaleBtn style={[S.btn, { backgroundColor: '#10b981', marginTop: 12, elevation: 3 }]} onPress={saveRecord}>
-                      <Text style={S.btnPriTxt}>{t.saveRecord}</Text>
+                  ? <ScaleBtn style={[S.btn, { backgroundColor: '#10b981', marginTop: 4, elevation: 3, paddingVertical: 16 }]} onPress={saveRecord}>
+                      <Text style={[S.btnPriTxt, { fontSize: 16 }]}>{t.saveRecord}</Text>
                     </ScaleBtn>
-                  : <View style={{ backgroundColor: savedIsUpdate ? '#fef3c7' : '#d1fae5', borderRadius: 10, padding: 10, marginTop: 12, alignItems: 'center' }}>
-                      <Text style={{ color: savedIsUpdate ? '#d97706' : '#059669', fontWeight: '700', fontSize: 14 }}>{savedIsUpdate ? t.updatedMsg : t.savedMsg}</Text>
+                  : <View style={{ backgroundColor: savedIsUpdate ? '#fef3c7' : '#d1fae5', borderRadius: 10, padding: 12, marginTop: 4, alignItems: 'center' }}>
+                      <Text style={{ color: savedIsUpdate ? '#d97706' : '#059669', fontWeight: '700', fontSize: 15 }}>{savedIsUpdate ? t.updatedMsg : t.savedMsg}</Text>
                     </View>
                 }
               </View>
