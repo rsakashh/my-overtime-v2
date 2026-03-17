@@ -28,8 +28,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "8d3c8b64-9f6e-4c5b-bc76-fbd1188eb07a"
+        "projectId": "d83ae3f3-0656-40a3-b77a-33ab52798909"
       }
-    }
+    },
+    "owner": "nitrogen5"
   }
 }

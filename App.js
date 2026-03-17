@@ -796,8 +796,8 @@ function WorkerForm({ t, initial, onSave, onCancel, lang }) {
             </>
           )}
         </View>
-        <View style={S.btnRow}>
-          {onCancel && <TouchableOpacity style={[S.btn, S.btnSec, { flex: 0, paddingHorizontal: 18 }]} onPress={onCancel}><Text style={S.btnSecTxt}>{t.cancel}</Text></TouchableOpacity>}
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+          {onCancel && <TouchableOpacity style={[S.btn, { flex: 0, paddingHorizontal: 18, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12 }]} onPress={onCancel}><Text style={{ color: '#475569', fontWeight: '600', fontSize: 14 }}>{t.cancel}</Text></TouchableOpacity>}
           <ScaleBtn style={[S.btn, S.btnPri, { flex: 2 }]} onPress={() => {
             if (!w.name.trim() || !w.basicSalary || !w.grossSalary) {
               Alert.alert('', t.workerName.replace(' *', '') + ' & ' + t.basicSalary.replace(' *', '') + ' required');
@@ -1339,10 +1339,9 @@ export default function App() {
             </View>
           </FadeIn>
 
-          {/* Reset ছোট, হিসাব করুন বড় */}
-          <View style={[S.btnRow, { alignItems: 'center' }]}>
-            <TouchableOpacity style={[S.btn, S.btnSec, { flex: 0, paddingHorizontal: 20 }]} onPress={resetCalc}>
-              <Text style={S.btnSecTxt}>{t.reset}</Text>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+            <TouchableOpacity style={[S.btn, { flex: 0, paddingHorizontal: 20, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12 }]} onPress={resetCalc}>
+              <Text style={{ color: '#475569', fontWeight: '600', fontSize: 14 }}>{t.reset}</Text>
             </TouchableOpacity>
             <ScaleBtn style={[S.btn, S.btnPri, { flex: 1, opacity: selId ? 1 : 0.5 }]} onPress={calculate}>
               <Text style={S.btnPriTxt}>{t.calc}</Text>
@@ -1391,6 +1390,17 @@ export default function App() {
                   </View>
                 )}
 
+                {/* Night Bill — OT এর নিচে, Grand Total এর উপরে */}
+                {result.totalNightPay > 0 && (
+                  <View style={{ backgroundColor: '#f5f3ff', borderRadius: 12, padding: 12, borderWidth: 2, borderColor: '#a78bfa', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#5b21b6', marginBottom: 8, textTransform: 'uppercase' }}>{t.nightBillSection}</Text>
+                    <RRow label={`${t.nightLbl} (${result.totalNightDays} ${t.days} × ৳${selW?.nightRatePerDay})`} val={`৳ ${fmt(result.totalNightPay)}`} c="#7c3aed" bg="#ede9fe" />
+                    <Text style={{ fontSize: 11, color: '#7c3aed', marginTop: 4, fontStyle: 'italic' }}>
+                      {lang === 'bn' ? '* নাইট বিল সর্বমোটের বাইরে আলাদা' : '* Night Bill is outside grand total'}
+                    </Text>
+                  </View>
+                )}
+
                 {/* Grand Total — শুধু বেতন + OT + বোনাস */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', borderRadius: 14, padding: 16, marginTop: 4, marginBottom: 10 }}>
                   <View>
@@ -1402,17 +1412,6 @@ export default function App() {
                     <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{selW?.name}</Text>
                   </View>
                 </View>
-
-                {/* Night Bill — Grand Total এর নিচে আলাদা */}
-                {result.totalNightPay > 0 && (
-                  <View style={{ backgroundColor: '#f5f3ff', borderRadius: 12, padding: 12, borderWidth: 2, borderColor: '#a78bfa', marginBottom: 10 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#5b21b6', marginBottom: 8, textTransform: 'uppercase' }}>{t.nightBillSection}</Text>
-                    <RRow label={`${t.nightLbl} (${result.totalNightDays} ${t.days} × ৳${selW?.nightRatePerDay})`} val={`৳ ${fmt(result.totalNightPay)}`} c="#7c3aed" bg="#ede9fe" />
-                    <Text style={{ fontSize: 11, color: '#7c3aed', marginTop: 4, fontStyle: 'italic' }}>
-                      {lang === 'bn' ? '* নাইট বিল সর্বমোটের বাইরে আলাদা' : '* Night Bill is outside grand total'}
-                    </Text>
-                  </View>
-                )}
 
                 {/* Save Button বড় */}
                 {!savedOk
