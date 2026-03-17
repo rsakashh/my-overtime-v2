@@ -1545,7 +1545,7 @@ function Footer({ t }) {
       <View style={{ marginTop: 10, alignItems: 'center', gap: 5 }}>
         <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700' }}>RS AKASH</Text>
         <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://rsakashh.github.io/P')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://rsakashh.github.io/portfolio')}>
             <Text style={{ fontSize: 12, color: '#2563eb', textDecorationLine: 'underline' }}>🌐 Website</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Linking.openURL('mailto:rsa.akash@yahoo.com')}>
