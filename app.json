@@ -24,7 +24,8 @@
         {
           "androidAppId": "ca-app-pub-6032254677631992~8456018863"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

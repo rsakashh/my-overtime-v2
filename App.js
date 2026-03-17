@@ -8,6 +8,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { BannerAd, BannerAdSize, TestIds, MobileAds } from 'react-native-google-mobile-ads';
 
 const AD_UNIT_ID = 'ca-app-pub-6032254677631992/2093790495';
@@ -813,25 +814,96 @@ function WorkerForm({ t, initial, onSave, onCancel, lang }) {
   );
 }
 
+// ── Absent Date Picker ───────────────────────────────────────────────────────
+function AbsentDatePicker({ t, absentDays, onAdd }) {
+  const [showPicker, setShowPicker] = useState(false);
+  const [date, setDate] = useState(new Date());
+
+  return (
+    <View style={{ marginBottom: 10 }}>
+      {showPicker && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display="calendar"
+          onChange={(event, selectedDate) => {
+            setShowPicker(false);
+            if (selectedDate) {
+              setDate(selectedDate);
+              const dateStr = selectedDate.toISOString().split('T')[0];
+              onAdd(dateStr);
+            }
+          }}
+        />
+      )}
+      <ScaleBtn
+        style={[{ backgroundColor: '#dc2626', borderRadius: 10, paddingVertical: 11, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]}
+        onPress={() => setShowPicker(true)}
+      >
+        <Text style={{ fontSize: 16 }}>📅</Text>
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t.addBtn} {t.absentDates}</Text>
+      </ScaleBtn>
+    </View>
+  );
+}
+
 // ── Entry Form ────────────────────────────────────────────────────────────────
 function EntryForm({ t, type, onAdd }) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
   const [date, setDate] = useState(today);
+  const [showPicker, setShowPicker] = useState(false);
   const [hours, setHours] = useState('');
   const [note, setNote] = useState('');
+
+  const dateStr = date.toISOString().split('T')[0];
+
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-      <TextInput style={[S.inpSm, { flex: 1.5, minWidth: 120 }]} value={date} onChangeText={setDate} placeholder={t.datePh} placeholderTextColor="#94a3b8" />
-      {type === 'ot' && <TextInput style={[S.inpSm, { flex: 0.8, minWidth: 70 }]} value={hours} onChangeText={setHours} keyboardType="numeric" placeholder={t.hoursPh} placeholderTextColor="#94a3b8" />}
-      <TextInput style={[S.inpSm, { flex: 1, minWidth: 80 }]} value={note} onChangeText={setNote} placeholder={t.notePh} placeholderTextColor="#94a3b8" />
-      <ScaleBtn style={S.addBtn} onPress={() => {
-        if (!date) return;
-        if (type === 'ot' && !hours) return;
-        onAdd({ date, hours: parseFloat(hours) || 0, note, id: Date.now() });
-        setHours(''); setNote('');
-      }}>
-        <Text style={S.addBtnTxt}>{t.addBtn}</Text>
-      </ScaleBtn>
+    <View style={{ marginBottom: 10 }}>
+      {showPicker && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display="calendar"
+          onChange={(event, selectedDate) => {
+            setShowPicker(false);
+            if (selectedDate) setDate(selectedDate);
+          }}
+        />
+      )}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <TouchableOpacity
+          style={[S.inpSm, { flex: 1.5, minWidth: 120, justifyContent: 'center', flexDirection: 'row', alignItems: 'center', gap: 6 }]}
+          onPress={() => setShowPicker(true)}
+        >
+          <Text style={{ fontSize: 14 }}>📅</Text>
+          <Text style={{ color: '#1e293b', fontSize: 13, fontWeight: '600' }}>{dateStr}</Text>
+        </TouchableOpacity>
+        {type === 'ot' && (
+          <TextInput
+            style={[S.inpSm, { flex: 0.8, minWidth: 70 }]}
+            value={hours}
+            onChangeText={setHours}
+            keyboardType="numeric"
+            placeholder={t.hoursPh}
+            placeholderTextColor="#94a3b8"
+          />
+        )}
+        <TextInput
+          style={[S.inpSm, { flex: 1, minWidth: 80 }]}
+          value={note}
+          onChangeText={setNote}
+          placeholder={t.notePh}
+          placeholderTextColor="#94a3b8"
+        />
+        <ScaleBtn style={S.addBtn} onPress={() => {
+          if (type === 'ot' && !hours) return;
+          onAdd({ date: dateStr, hours: parseFloat(hours) || 0, note, id: Date.now() });
+          setHours(''); setNote('');
+          setDate(new Date());
+        }}>
+          <Text style={S.addBtnTxt}>{t.addBtn}</Text>
+        </ScaleBtn>
+      </View>
     </View>
   );
 }
@@ -853,7 +925,6 @@ export default function App() {
   const [year, setYear] = useState(new Date().getFullYear());
   // Changed: absentDays is now an array of {id, date}
   const [absentDays, setAbsentDays] = useState([]);
-  const [absentDateInput, setAbsentDateInput] = useState(new Date().toISOString().split('T')[0]);
   const [otList, setOtList] = useState([]);
   const [nightList, setNightList] = useState([]);
   const [result, setResult] = useState(null);
@@ -1228,25 +1299,17 @@ export default function App() {
                 <Text style={S.hintTxt}>{t.selectFirst}</Text>
               ) : (
                 <>
-                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
-                    <TextInput
-                      style={[S.inpSm, { flex: 1 }]}
-                      value={absentDateInput}
-                      onChangeText={setAbsentDateInput}
-                      placeholder={t.absentDatePh}
-                      placeholderTextColor="#94a3b8"
-                    />
-                    <ScaleBtn style={[S.addBtn, { backgroundColor: '#dc2626' }]} onPress={() => {
-                      if (!absentDateInput) return;
-                      if (absentDays.find(d => d.date === absentDateInput)) return;
-                      const updated = [...absentDays, { id: Date.now(), date: absentDateInput }];
+                  <AbsentDatePicker
+                    t={t}
+                    absentDays={absentDays}
+                    onAdd={(dateStr) => {
+                      if (absentDays.find(d => d.date === dateStr)) return;
+                      const updated = [...absentDays, { id: Date.now(), date: dateStr }];
                       setAbsentDays(updated);
                       updateData({ calcState: { selId, month, year, absentDays: updated, otList, nightList } });
                       setResult(null);
-                    }}>
-                      <Text style={S.addBtnTxt}>{t.addBtn}</Text>
-                    </ScaleBtn>
-                  </View>
+                    }}
+                  />
                   {absentDays.length === 0
                     ? <Text style={S.hintTxt}>{t.noAbsent}</Text>
                     : [...absentDays].sort((a, b) => a.date > b.date ? 1 : -1).map(d => (
@@ -1585,11 +1648,11 @@ const S = StyleSheet.create({
   radioOn: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
   radioTxt: { fontSize: 13, color: '#374151', flex: 1 },
   autoTag: { backgroundColor: '#dcfce7', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2, fontSize: 11, fontWeight: '700', color: '#15803d' },
-  btnRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  btnRow: { flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'center' },
   btn: { borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
-  btnPri: { flex: 2, backgroundColor: '#2563eb', elevation: 4, shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 6 },
+  btnPri: { flex: 1, backgroundColor: '#2563eb', elevation: 4, shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 6 },
   btnPriTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  btnSec: { flex: 1, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0' },
+  btnSec: { flex: 0, paddingHorizontal: 20, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0' },
   btnSecTxt: { color: '#475569', fontWeight: '600', fontSize: 14 },
   greenBtn: { backgroundColor: '#10b981', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, elevation: 3 },
   greenBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
