@@ -10,7 +10,7 @@ import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { BannerAd, BannerAdSize, TestIds, MobileAds } from 'react-native-google-mobile-ads';
 
-const AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-6032254677631992/2093790495';
+const AD_UNIT_ID = 'ca-app-pub-6032254677631992/2093790495';
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const AS_KEY = '@myovertime_v6';
@@ -713,7 +713,7 @@ function WorkerForm({ t, initial, onSave, onCancel, lang }) {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) { Alert.alert('', lang === 'bn' ? 'গ্যালারি অনুমতি দরকার' : 'Gallery permission needed'); return; }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.6 });
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: false, quality: 0.6 });
       if (!result.canceled && result.assets[0]) {
         set('photo', result.assets[0].uri);
       }
@@ -965,8 +965,8 @@ export default function App() {
     const totalNightPay = nightRate * totalNightDays;
     const bonusApplied = selW.bonusEnabled && absN === 0;
     const bonus = bonusApplied ? (parseFloat(selW.bonusAmt) || 0) : 0;
-    // Grand total: salary + OT (separate) + night (separate) + bonus
-    const grandTotal = netSalary + totalOTPay + totalNightPay + bonus;
+    // Grand total: salary + OT + bonus (night bill আলাদা, grand total এ নেই)
+    const grandTotal = netSalary + totalOTPay + bonus;
     setResult({ basic, gross, perDayDeduct, deduction, netSalary, otRate, totalOTHours, totalOTPay, totalNightDays, totalNightPay, bonusApplied, bonus, grandTotal });
     setSavedOk(false);
   };
@@ -1046,7 +1046,7 @@ export default function App() {
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f4ff' }}>
-        <Animated.Text style={{ fontSize: 48, transform: [{ rotate: spin }] }}>⏱</Animated.Text>
+        <Image source={require('./icon.png')} style={{ width: 80, height: 80, borderRadius: 20 }} />
         <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 16 }} />
         <Text style={{ marginTop: 12, color: '#64748b', fontSize: 15 }}>{t.loading}</Text>
       </View>
@@ -1061,7 +1061,7 @@ export default function App() {
       <View style={S.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 28, paddingBottom: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Animated.Text style={{ fontSize: 26, backgroundColor: 'rgba(255,255,255,0.15)', padding: 7, borderRadius: 12, transform: [{ rotate: spin }] }}>⏱</Animated.Text>
+            <Image source={require('./icon.png')} style={{ width: 42, height: 42, borderRadius: 12 }} />
             <View>
               <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800' }}>{t.appTitle}</Text>
               <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>{t.appSubtitle}</Text>
@@ -1277,7 +1277,12 @@ export default function App() {
               {!selId ? <Text style={S.hintTxt}>{t.selectFirst}</Text> : (
                 <>
                   <EntryForm t={t} type="ot" onAdd={e => {
-                    setOtList(p => { const updated = [...p, e]; updateData({ calcState: { selId, month, year, absentDays, otList: updated, nightList } }); return updated; });
+                    setOtList(p => {
+                      const exists = p.findIndex(x => x.date === e.date);
+                      const updated = exists >= 0 ? p.map((x, i) => i === exists ? { ...e, id: x.id } : x) : [...p, e];
+                      updateData({ calcState: { selId, month, year, absentDays, otList: updated, nightList } });
+                      return updated;
+                    });
                     setResult(null);
                   }} />
                   {otList.length === 0 ? <Text style={S.hintTxt}>{t.noOT}</Text> :
@@ -1308,7 +1313,12 @@ export default function App() {
               {!selId ? <Text style={S.hintTxt}>{t.selectFirst}</Text> : (
                 <>
                   <EntryForm t={t} type="night" onAdd={e => {
-                    setNightList(p => { const updated = [...p, e]; updateData({ calcState: { selId, month, year, absentDays, otList, nightList: updated } }); return updated; });
+                    setNightList(p => {
+                      const exists = p.findIndex(x => x.date === e.date);
+                      const updated = exists >= 0 ? p.map((x, i) => i === exists ? { ...e, id: x.id } : x) : [...p, e];
+                      updateData({ calcState: { selId, month, year, absentDays, otList, nightList: updated } });
+                      return updated;
+                    });
                     setResult(null);
                   }} />
                   {nightList.length === 0 ? <Text style={S.hintTxt}>{t.noNight}</Text> :
@@ -1535,7 +1545,7 @@ function Footer({ t }) {
       <View style={{ marginTop: 10, alignItems: 'center', gap: 5 }}>
         <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700' }}>RS AKASH</Text>
         <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://rsakashh.github.io/p')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://rsakashh.github.io/P')}>
             <Text style={{ fontSize: 12, color: '#2563eb', textDecorationLine: 'underline' }}>🌐 Website</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Linking.openURL('mailto:rsa.akash@yahoo.com')}>
