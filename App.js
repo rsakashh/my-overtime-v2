@@ -292,16 +292,7 @@ function FadeIn({ children, delay = 0, style }) {
   );
 }
 
-function ScaleBtn({ children, style, onPress, ...rest }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const pressIn = () => Animated.spring(scale, { toValue: 0.95, useNativeDriver: true }).start();
-  const pressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
-  return (
-    <TouchableOpacity onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={1} {...rest}>
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
-    </TouchableOpacity>
-  );
-}
+
 
 // ── Bank Card Style Report Card ───────────────────────────────────────────────
 function BankCard({ r, t, lang, onPress, onDelete, onTogglePaid }) {
@@ -797,9 +788,9 @@ function WorkerForm({ t, initial, onSave, onCancel, lang }) {
             </>
           )}
         </View>
-        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
-          {onCancel && <TouchableOpacity style={[S.btn, { flex: 0, paddingHorizontal: 18, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12 }]} onPress={onCancel}><Text style={{ color: '#475569', fontWeight: '600', fontSize: 14 }}>{t.cancel}</Text></TouchableOpacity>}
-          <ScaleBtn style={[S.btn, S.btnPri, { flex: 2 }]} onPress={() => {
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'stretch' }}>
+          {onCancel && <TouchableOpacity style={{ paddingHorizontal: 18, paddingVertical: 13, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }} onPress={onCancel}><Text style={{ color: '#475569', fontWeight: '600', fontSize: 14 }}>{t.cancel}</Text></TouchableOpacity>}
+          <TouchableOpacity style={[S.btn, S.btnPri, { flex: 1 }]} activeOpacity={0.8} onPress={() => {
             if (!w.name.trim() || !w.basicSalary || !w.grossSalary) {
               Alert.alert('', t.workerName.replace(' *', '') + ' & ' + t.basicSalary.replace(' *', '') + ' required');
               return;
@@ -807,7 +798,7 @@ function WorkerForm({ t, initial, onSave, onCancel, lang }) {
             onSave({ ...w, id: initial?.id || Date.now() });
           }}>
             <Text style={S.btnPriTxt}>{t.save}</Text>
-          </ScaleBtn>
+          </TouchableOpacity>
         </View>
       </View>
     </FadeIn>
@@ -836,13 +827,14 @@ function AbsentDatePicker({ t, absentDays, onAdd }) {
           }}
         />
       )}
-      <ScaleBtn
-        style={[{ backgroundColor: '#dc2626', borderRadius: 10, paddingVertical: 11, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        style={{ backgroundColor: '#dc2626', borderRadius: 10, paddingVertical: 11, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         onPress={() => setShowPicker(true)}
       >
         <Text style={{ fontSize: 16 }}>📅</Text>
         <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t.addBtn} {t.absentDates}</Text>
-      </ScaleBtn>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -895,14 +887,14 @@ function EntryForm({ t, type, onAdd }) {
           placeholder={t.notePh}
           placeholderTextColor="#94a3b8"
         />
-        <ScaleBtn style={S.addBtn} onPress={() => {
+        <TouchableOpacity activeOpacity={0.8} style={S.addBtn} onPress={() => {
           if (type === 'ot' && !hours) return;
           onAdd({ date: dateStr, hours: parseFloat(hours) || 0, note, id: Date.now() });
           setHours(''); setNote('');
           setDate(new Date());
         }}>
           <Text style={S.addBtnTxt}>{t.addBtn}</Text>
-        </ScaleBtn>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1138,9 +1130,9 @@ export default function App() {
               <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>{t.appSubtitle}</Text>
             </View>
           </View>
-          <ScaleBtn style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }} onPress={() => setLang(l => l === 'bn' ? 'en' : 'bn')}>
+          <TouchableOpacity activeOpacity={0.8} style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }} onPress={() => setLang(l => l === 'bn' ? 'en' : 'bn')}>
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t.lang}</Text>
-          </ScaleBtn>
+          </TouchableOpacity>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, padding: 10, paddingTop: 4 }}>
           {t.tabs.map((name, i) => (
@@ -1175,9 +1167,9 @@ export default function App() {
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <Text style={S.cardTitle}>👷 {lang === 'bn' ? 'কর্মী তালিকা' : 'Workers'}</Text>
                 {!showAdd && !editId && (
-                  <ScaleBtn style={S.greenBtn} onPress={() => setShowAdd(true)}>
+                  <TouchableOpacity activeOpacity={0.8} style={S.greenBtn} onPress={() => setShowAdd(true)}>
                     <Text style={S.greenBtnTxt}>{t.addWorker}</Text>
-                  </ScaleBtn>
+                  </TouchableOpacity>
                 )}
               </View>
               {showAdd && <WorkerForm t={t} lang={lang} onSave={saveWorker} onCancel={() => setShowAdd(false)} />}
@@ -1185,9 +1177,9 @@ export default function App() {
                 <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
                   <Text style={{ fontSize: 48 }}>👷</Text>
                   <Text style={{ color: '#64748b', fontSize: 14 }}>{t.noWorkers}</Text>
-                  <ScaleBtn style={S.greenBtn} onPress={() => setShowAdd(true)}>
+                  <TouchableOpacity activeOpacity={0.8} style={S.greenBtn} onPress={() => setShowAdd(true)}>
                     <Text style={S.greenBtnTxt}>{t.addWorker}</Text>
-                  </ScaleBtn>
+                  </TouchableOpacity>
                 </View>
               )}
               {workers.map((w, idx) => (
@@ -1402,13 +1394,13 @@ export default function App() {
             </View>
           </FadeIn>
 
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
-            <TouchableOpacity style={[S.btn, { flex: 0, paddingHorizontal: 20, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12 }]} onPress={resetCalc}>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'stretch' }}>
+            <TouchableOpacity style={{ paddingHorizontal: 18, paddingVertical: 13, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }} onPress={resetCalc}>
               <Text style={{ color: '#475569', fontWeight: '600', fontSize: 14 }}>{t.reset}</Text>
             </TouchableOpacity>
-            <ScaleBtn style={[S.btn, S.btnPri, { flex: 1, opacity: selId ? 1 : 0.5 }]} onPress={calculate}>
-              <Text style={S.btnPriTxt}>{t.calc}</Text>
-            </ScaleBtn>
+            <TouchableOpacity style={{ flex: 1, backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', elevation: 4, opacity: selId ? 1 : 0.5 }} onPress={calculate} activeOpacity={0.8}>
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{t.calc}</Text>
+            </TouchableOpacity>
           </View>
 
           {result && (
@@ -1478,9 +1470,9 @@ export default function App() {
 
                 {/* Save Button বড় */}
                 {!savedOk
-                  ? <ScaleBtn style={[S.btn, { backgroundColor: '#10b981', marginTop: 4, elevation: 3, paddingVertical: 16 }]} onPress={saveRecord}>
+                  ? <TouchableOpacity activeOpacity={0.8} style={[S.btn, { backgroundColor: '#10b981', marginTop: 4, elevation: 3, paddingVertical: 16 }]} onPress={saveRecord}>
                       <Text style={[S.btnPriTxt, { fontSize: 16 }]}>{t.saveRecord}</Text>
-                    </ScaleBtn>
+                    </TouchableOpacity>
                   : <View style={{ backgroundColor: savedIsUpdate ? '#fef3c7' : '#d1fae5', borderRadius: 10, padding: 12, marginTop: 4, alignItems: 'center' }}>
                       <Text style={{ color: savedIsUpdate ? '#d97706' : '#059669', fontWeight: '700', fontSize: 15 }}>{savedIsUpdate ? t.updatedMsg : t.savedMsg}</Text>
                     </View>
