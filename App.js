@@ -925,6 +925,7 @@ export default function App() {
   const [editId, setEditId] = useState(null);
 
   const [selId, setSelId] = useState(null);
+  const [workerData, setWorkerData] = useState({});
   const [month, setMonth] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
   // Changed: absentDays is now an array of {id, date}
@@ -1247,10 +1248,16 @@ export default function App() {
                       <TouchableOpacity key={w.id} style={[S.wChip, selId === w.id && S.wChipOn]}
                         onPress={() => {
                           if (selId !== w.id) {
+                            // Save current worker data
+                            if (selId) {
+                              setWorkerData(p => ({ ...p, [selId]: { absentDays, otList, nightList } }));
+                            }
+                            // Load new worker data
                             setSelId(w.id);
-                            setAbsentDays([]);
-                            setOtList([]);
-                            setNightList([]);
+                            const saved = workerData[w.id] || {};
+                            setAbsentDays(saved.absentDays || []);
+                            setOtList(saved.otList || []);
+                            setNightList(saved.nightList || []);
                             setResult(null);
                             setSavedOk(false);
                           }
@@ -1357,6 +1364,7 @@ export default function App() {
                       const exists = p.findIndex(x => x.date === e.date);
                       const updated = exists >= 0 ? p.map((x, i) => i === exists ? { ...e, id: x.id } : x) : [...p, e];
                       updateData({ calcState: { selId, month, year, absentDays, otList: updated, nightList } });
+                      if (selId) setWorkerData(wd => ({ ...wd, [selId]: { absentDays, otList: updated, nightList } }));
                       return updated;
                     });
                     setResult(null);
@@ -1393,6 +1401,7 @@ export default function App() {
                       const exists = p.findIndex(x => x.date === e.date);
                       const updated = exists >= 0 ? p.map((x, i) => i === exists ? { ...e, id: x.id } : x) : [...p, e];
                       updateData({ calcState: { selId, month, year, absentDays, otList, nightList: updated } });
+                      if (selId) setWorkerData(wd => ({ ...wd, [selId]: { absentDays, otList, nightList: updated } }));
                       return updated;
                     });
                     setResult(null);
