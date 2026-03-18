@@ -762,6 +762,7 @@ function WorkerForm({ t, initial, onSave, onCancel, lang }) {
           </View>
         </View>
         <View style={S.otBox}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: '#0369a1', marginBottom: 10 }}>⏱ {lang === 'bn' ? 'ওভারটাইম রেট' : 'Overtime Rate'}</Text>
           <TouchableOpacity style={S.radioRow} onPress={() => set('otType', 'auto')}>
             <View style={[S.radio, w.otType === 'auto' && S.radioOn]} />
             <Text style={S.radioTxt}>{t.otAuto}</Text>
@@ -772,7 +773,18 @@ function WorkerForm({ t, initial, onSave, onCancel, lang }) {
             <Text style={S.radioTxt}>{t.otManual}</Text>
           </TouchableOpacity>
           {w.otType === 'manual' && (
-            <TextInput style={[S.inp, { marginTop: 8 }]} value={w.otManualRate} onChangeText={v => set('otManualRate', v)} keyboardType="numeric" placeholder={t.otRatePh} placeholderTextColor="#94a3b8" />
+            <View style={{ marginTop: 8 }}>
+              <Text style={[S.lbl, { color: '#d97706' }]}>⏱ {t.otRatePh}</Text>
+              <TextInput
+                style={[S.inp, { borderColor: '#fbbf24', fontSize: 16, fontWeight: '700' }]}
+                value={w.otManualRate}
+                onChangeText={v => set('otManualRate', v)}
+                keyboardType="numeric"
+                placeholder="0.00"
+                placeholderTextColor="#94a3b8"
+              />
+              <Text style={{ fontSize: 11, color: '#d97706', marginTop: 4 }}>💡 {lang === 'bn' ? 'প্রতি ঘন্টা ওভারটাইম পরিমাণ লিখুন' : 'Enter OT amount per hour'}</Text>
+            </View>
           )}
         </View>
         <View style={S.bonusBox}>
@@ -1233,7 +1245,16 @@ export default function App() {
                     ? <Text style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: 13 }}>{lang === 'bn' ? 'প্রথমে কর্মী যোগ করুন' : 'Add workers first'}</Text>
                     : workers.map(w => (
                       <TouchableOpacity key={w.id} style={[S.wChip, selId === w.id && S.wChipOn]}
-                        onPress={() => { setSelId(w.id); setResult(null); setSavedOk(false); }}>
+                        onPress={() => {
+                          if (selId !== w.id) {
+                            setSelId(w.id);
+                            setAbsentDays([]);
+                            setOtList([]);
+                            setNightList([]);
+                            setResult(null);
+                            setSavedOk(false);
+                          }
+                        }}>
                         {w.photo && (
                           <Image source={{ uri: w.photo }} style={{ width: 20, height: 20, borderRadius: 10, marginRight: 4 }} />
                         )}
